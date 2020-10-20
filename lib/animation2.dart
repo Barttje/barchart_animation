@@ -40,8 +40,7 @@ class _BarChartState extends State<BarChart>
   @override
   void initState() {
     super.initState();
-    controller =
-        AnimationController(duration: const Duration(seconds: 2), vsync: this);
+    controller = AnimationController(duration: const Duration(seconds: 2));
     controller.forward();
   }
 

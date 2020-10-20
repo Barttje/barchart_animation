@@ -1,76 +1,61 @@
 import 'package:flutter/material.dart';
 import 'dart:math';
 
+import 'package:flutter_hooks/flutter_hooks.dart';
+
 void main() {
   runApp(BarChartAnimationDemo());
 }
 
-class BarChartAnimationDemo extends StatefulWidget {
-  @override
-  _BarChartAnimationDemoState createState() => _BarChartAnimationDemoState();
-}
-
-class _BarChartAnimationDemoState extends State<BarChartAnimationDemo>
-    with SingleTickerProviderStateMixin {
-  Animation<double> animation;
-  AnimationController controller;
-
-  @override
-  void initState() {
-    super.initState();
-    controller = AnimationController(duration: const Duration(seconds: 2));
-    animation = Tween<double>(begin: 0, end: 100).animate(controller);
-    controller.forward();
-  }
-
-  @override
-  void dispose() {
-    controller.dispose();
-    super.dispose();
-  }
-
+class BarChartAnimationDemo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       home: Scaffold(
         appBar: AppBar(
-          title: Text("Bar chart demo"),
+          title: Text("Bar Chart Flutter Hooks Demo"),
         ),
         body: Padding(
           padding: const EdgeInsets.all(8.0),
-          child: BarChart(
-            animation: animation,
-          ),
+          child: BarChart(),
         ),
       ),
     );
   }
 }
 
-class BarChart extends AnimatedWidget {
-  BarChart({Key key, Animation<double> animation})
-      : super(key: key, listenable: animation);
+class BarChart extends HookWidget {
+  final Duration duration = const Duration(seconds: 2);
 
-  final Map<String, int> data = {
+  @override
+  Widget build(BuildContext context) {
+    final controller = useAnimationController(duration: duration);
+    controller.forward();
+    return BarChartContainer(controller: controller);
+  }
+}
+
+class BarChartContainer extends AnimatedWidget {
+  BarChartContainer({AnimationController controller})
+      : super(
+            listenable: Tween<double>(begin: 0, end: 100).animate(controller));
+
+  static const Map<String, int> data = {
     "Banana": 16,
     "Orange": 8,
     "Appple": 10,
     "Kiwi": 10,
-    "Pear": 3
+    "Pear": 3,
   };
+
   @override
   Widget build(BuildContext context) {
-    final animation = listenable as Animation<double>;
-    return Column(
-      children: <Widget>[
-        CustomPaint(
-          painter: BarChartPainter(data, "Favorite Fruit", animation.value),
-          child: Container(
-            width: 350,
-            height: 200,
-          ),
-        ),
-      ],
+    Animation<double> animation = listenable;
+    return CustomPaint(
+      painter: BarChartPainter(data, "Favorite Fruit", animation.value),
+      child: Container(
+        width: 350,
+      ),
     );
   }
 }
@@ -78,14 +63,17 @@ class BarChart extends AnimatedWidget {
 class BarChartPainter extends CustomPainter {
   final String title;
   final Map<String, int> data;
+
   // Currently based on the length of the category names
   double marginTopX = 0;
   double marginTopY;
+
   //padding between the bars
   final double paddingY = 5;
   final double axisWidth = 2;
   final double barHeight = 15;
   final double percentage;
+
   BarChartPainter(this.data, this.title, this.percentage) {
     // determine where to begin with X, based on the width of the category names
     data.forEach((key, value) {
@@ -96,6 +84,7 @@ class BarChartPainter extends CustomPainter {
     });
     marginTopY = createText(title, 1.5).height + paddingY;
   }
+
   @override
   void paint(Canvas canvas, Size size) {
     Paint axis = Paint()
@@ -103,11 +92,9 @@ class BarChartPainter extends CustomPainter {
       ..color = Colors.grey;
 
     double number = 0;
-    double sum = 0;
     data.forEach((key, value) {
-      drawBar(canvas, size, number, key, value, sum);
+      drawBar(canvas, size, number, key, value);
       number++;
-      sum += value;
     });
     drawAxes(canvas, size, axis);
     drawTitle(canvas, size);
@@ -134,23 +121,19 @@ class BarChartPainter extends CustomPainter {
     );
   }
 
-  void drawBar(Canvas canvas, Size size, double number, String key, int value,
-      double sum) {
+  void drawBar(Canvas canvas, Size size, double number, String key, int value) {
     double y = number * (paddingY + barHeight) + marginTopY + barHeight / 2;
     drawText(key, canvas, y);
     Paint paint = Paint()
       ..strokeWidth = barHeight
       ..color = Colors.blue;
-
-    double minValue = min(totalValue() * percentage / 100 - sum, value * 1.0);
-    if (minValue > 0) {
-      final width = (size.width - marginTopX) / (maxValue() / minValue);
-      canvas.drawLine(
-        Offset(marginTopX, y),
-        Offset(width + marginTopX, y),
-        paint,
-      );
-    }
+    final width =
+        (size.width - marginTopX) / (maxValue() / value) * percentage / 100;
+    canvas.drawLine(
+      Offset(marginTopX, y),
+      Offset(width + marginTopX, y),
+      paint,
+    );
   }
 
   void drawText(String key, Canvas canvas, double y) {
@@ -175,5 +158,4 @@ class BarChartPainter extends CustomPainter {
       this.percentage != oldDelegate.percentage;
 
   int maxValue() => data.values.reduce(max);
-  int totalValue() => data.values.fold(0, (p, c) => p + c);
 }

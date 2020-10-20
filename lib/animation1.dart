@@ -41,8 +41,7 @@ class _BarChartState extends State<BarChart>
   @override
   void initState() {
     super.initState();
-    controller =
-        AnimationController(duration: const Duration(seconds: 2), vsync: this);
+    controller = AnimationController(duration: const Duration(seconds: 2));
     animation = Tween<double>(begin: 0, end: 100).animate(controller)
       ..addListener(() {
         setState(() {});
